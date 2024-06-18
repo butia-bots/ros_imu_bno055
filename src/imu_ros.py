@@ -40,6 +40,7 @@ Author:  Robert Vasquez Zavaleta
 
 import rospy
 import os
+import numpy as np
 from ros_imu_bno055.imu_bno055_api import * 
 from sensor_msgs.msg import Imu
 from sensor_msgs.msg import Temperature
@@ -100,6 +101,7 @@ class SensorIMU:
         self.frequency = rospy.get_param(self.node_name + '/frequency', 20)
         self.use_magnetometer = rospy.get_param(self.node_name + '/use_magnetometer', False)
         self.use_temperature = rospy.get_param(self.node_name + '/use_temperature', False)
+        self.normalize = rospy.get_param(self.node_name + '/normalize',True)
 
         switcher = {
 
@@ -281,11 +283,20 @@ class SensorIMU:
         imu_data.header.stamp = rospy.Time.now()
         imu_data.header.frame_id = self.frame_id
         imu_data.header.seq = self.imu_data_seq_counter
+        
+        if self.normalize:
+            norm = np.linalg.norm(quaternion)
+            quaternion[0] /= norm
+            quaternion[1] /= norm
+            quaternion[2] /= norm
+            quaternion[3] /= norm
+
 
         imu_data.orientation.w = quaternion[0]
         imu_data.orientation.x = quaternion[1]
         imu_data.orientation.y = quaternion[2]
         imu_data.orientation.z = quaternion[3]
+
 
         imu_data.linear_acceleration.x = linear_acceleration[0]
         imu_data.linear_acceleration.y = linear_acceleration[1]
@@ -295,9 +306,17 @@ class SensorIMU:
         imu_data.angular_velocity.y = gyroscope[1]
         imu_data.angular_velocity.z = gyroscope[2]
 
-        imu_data.orientation_covariance[0] = -1
-        imu_data.linear_acceleration_covariance[0] = -1
-        imu_data.angular_velocity_covariance[0] = -1
+        imu_data.orientation_covariance[0] = 0.03
+        imu_data.orientation_covariance[4] = 0.03
+        imu_data.orientation_covariance[8] = 0.03
+        
+        imu_data.linear_acceleration_covariance[0] = 1.0
+        imu_data.linear_acceleration_covariance[4] = 1.0
+        imu_data.linear_acceleration_covariance[8] = 1.0
+        
+        imu_data.angular_velocity_covariance[0] = 0.1
+        imu_data.angular_velocity_covariance[4] = 0.1
+        imu_data.angular_velocity_covariance[8] = 0.1
 
         self.imu_data_seq_counter=+1
 
