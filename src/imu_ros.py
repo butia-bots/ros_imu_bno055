@@ -285,6 +285,7 @@ class SensorIMU:
         imu_data.header.seq = self.imu_data_seq_counter
         
         if self.normalize:
+            quaternion = list(quaternion)
             norm = np.linalg.norm(quaternion)
             quaternion[0] /= norm
             quaternion[1] /= norm
